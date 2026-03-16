@@ -150,10 +150,15 @@ L4 loss changes the calculus. Ignoring a feature costs (1/6)^2 = 1/36 per occurr
 
 ### Next steps
 
-The L4-trained model appears to genuinely compute in superposition. The next step is to reverse-engineer what the model is actually doing:
-- How are the 500 features represented in the 50-dimensional hidden space?
-- What interference patterns arise when multiple features are active?
-- Does the model use a structured overcomplete basis (e.g., approximate equiangular tight frame)?
+The L4-trained model appears to genuinely compute in superposition. We're not sure exactly what's going on inside, but here's where we'd look:
+
+1. **W_in Gram matrix.** 500 feature directions packed into R^50 — how are they arranged? The Welch bound gives a minimum coherence of ~0.134 for this setup. If the model's pairwise cosine similarities are near this, it found something close to an equiangular tight frame. This is probably the most informative single thing to compute.
+
+2. **W_out/W_in alignment.** Does the model use matched encode/decode directions? Check per-feature cosine similarity between each W_out row and corresponding W_in column. For a tight frame W_out ≈ α·W_in^T, so this is closely related to (1).
+
+3. **Linear ablation.** Retrain with no ReLU (just W_out @ W_in @ x) under L4 loss. If it performs comparably, the nonlinearity isn't contributing and we have representation in superposition, not computation in superposition. If the ReLU model wins, the nonlinearity is essential — that's the "computation" part.
+
+4. **Multi-feature interference.** With ~10 features active at a time, how does the hidden representation compare to the sum of single-feature representations? How does ReLU clipping interact with feature co-occurrence? This is where the actual mechanism lives, and where we're least sure what to expect.
 
 ## Files
 
