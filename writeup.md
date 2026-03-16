@@ -99,8 +99,66 @@ All core claims from Bhagat et al. replicate qualitatively:
 
 This confirms that compressed computation, as formulated by Braun et al., is likely not a suitable toy model of computation in superposition.
 
+## Part 2: Toward a genuine CiS toy model
+
+### Motivation
+
+Given that compressed computation is not CiS, can we design a toy model that genuinely exhibits it? Lucius Bushnaq's comment on the LessWrong post offers a key insight:
+
+> Computation in Superposition is unlikely to train in this kind of setup, because it's mainly concerned with minimising *worst-case* noise. [...] A task where the model is scored on how close to correct it gets many continuously-valued labels, as scored by MSE loss, is not good for this.
+>
+> I think we need a task where the labels are somehow more discrete, or the loss function punishes outlier errors more [...]
+
+The intuition: L2 loss is tolerant of "spreading" error unevenly across features. A naive solution that perfectly computes 50 features and ignores 450 can achieve low *average* L2 loss because the ignored features contribute a bounded amount each. But a loss function that punishes outlier errors more harshly (like L4 or higher) makes it costly to completely ignore any feature — incentivizing the model to spread its capacity across all features, even at the cost of per-feature precision.
+
+### Setup
+
+We modify the compressed computation setup:
+- **500 features, 50 neurons** (10:1 overcompleteness ratio, up from 2:1)
+- **p = 0.02** (~10 features active per input)
+- **M = 0** (no mixing matrix — any advantage must come from genuine CiS)
+- **Task**: y_i = ReLU(x_i) (pure ReLU, no mixing term)
+
+We compare two loss functions:
+- **L2 loss**: |y_hat - y|^2 (standard MSE)
+- **L4 loss**: |y_hat - y|^4 (punishes outlier errors more harshly)
+
+The naive baseline dedicates one neuron per feature for 50 of the 500 features and outputs zero for the rest. For the ignored features, the expected error when active is E[ReLU(x)^2] = 1/6 ≈ 0.167.
+
+### Result: L4 loss elicits CiS
+
+![L2 vs L4 comparison](figures/cis_l2_vs_l4_comparison.png)
+
+The right panel shows per-feature MSE (sorted) for both models. The result is striking:
+
+- **L2-trained** (blue): ~50 features are well-computed (low error), while the remaining ~450 sit at or above the "complete ignorance" line (red dashed, 1/6). This is essentially the naive solution — the model dedicates its neurons to a subset of features and ignores the rest.
+
+- **L4-trained** (orange): *all 500 features* have roughly the same error (~0.12), uniformly below the ignorance line. The model has spread its 50 neurons across all 500 features, computing each one imprecisely but none of them ignored.
+
+This is exactly the signature of computation in superposition: the model uses an overcomplete set of directions in its 50-dimensional hidden space to represent and compute all 500 features simultaneously, accepting interference noise as the cost.
+
+The per-feature coverage plots confirm this:
+
+![L2 coverage](figures/cis_feature_coverage_L2_loss.png)
+![L4 coverage](figures/cis_feature_coverage_L4_loss.png)
+
+### Why this works
+
+L2 loss is indifferent between "compute 50 features perfectly, ignore 450" and "compute all 500 at moderate accuracy" when the total error is the same. In fact, the L2-optimal strategy is to concentrate capacity on a subset — since the per-feature error from ignoring is bounded (1/6), and computing perfectly saves that entire 1/6, while splitting a neuron across multiple features saves less per feature.
+
+L4 loss changes the calculus. Ignoring a feature costs (1/6)^2 = 1/36 per occurrence in L4 terms, while a small residual error epsilon costs epsilon^4 ≈ 0. The penalty for complete ignorance is disproportionately large relative to the penalty for imprecise computation. This incentivizes the model to allocate at least *some* capacity to every feature.
+
+### Next steps
+
+The L4-trained model appears to genuinely compute in superposition. The next step is to reverse-engineer what the model is actually doing:
+- How are the 500 features represented in the 50-dimensional hidden space?
+- What interference patterns arise when multiple features are active?
+- Does the model use a structured overcomplete basis (e.g., approximate equiangular tight frame)?
+
 ## Files
 
-- `replicate.py` — All experiment code
-- `figures/` — Generated plots (5 PNG files)
-- `data/` — Raw experiment data (5 NPZ files)
+- `replicate.py` — Replication experiment code (Part 1)
+- `cis_experiment.py` — CiS experiment code (Part 2)
+- `figures/` — All generated plots
+- `data/` — Raw experiment data (NPZ files)
+- `weights/` — Saved model weights (L2 and L4 trained models)
