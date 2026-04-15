@@ -1,0 +1,150 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{bm}
+\usepackage{array}
+
+\title{Closed-form $L^4$ loss for the $20f/2n$ ReLU model}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Setup}
+
+We have $F$ features and $n$ neurons, with $F = 20$ and $n = 2$. Inputs are
+\begin{equation*}
+x_j = m_j v_j, \qquad m_j \sim \text{Bernoulli}(p), \quad v_j \sim \text{Uniform}(-1, 1),
+\end{equation*}
+i.i.d.\ across $j$, where $p \in (0, 1)$ is the per-feature activation probability (sparsity). The target is $t_j = \mathrm{ReLU}(x_j)$. The model has no bias terms and is
+\begin{equation*}
+y = W_{\mathrm{out}} \, \mathrm{ReLU}(W_{\mathrm{in}} x), \qquad
+W_{\mathrm{in}} \in \mathbb{R}^{2 \times F}, \quad W_{\mathrm{out}} \in \mathbb{R}^{F \times 2}.
+\end{equation*}
+
+Empirically, features fall into three groups based on the signs of the two entries of their $W_{\mathrm{in}}$ column, i.e.\ the signs of the weights routing that feature to neuron $1$ and neuron $2$ respectively. Writing $W_{\mathrm{in}}[:, j] = (w_{1j}, w_{2j})$, the groups are:
+\begin{itemize}
+\item Group $A$ with sign pattern $(\mathrm{sign}(w_{1j}), \mathrm{sign}(w_{2j})) = (+, +)$: $n_A$ features.
+\item Group $B$ with sign pattern $(+, -)$: $n_B$ features.
+\item Group $C$ with sign pattern $(-, +)$: $n_C$ features.
+\end{itemize}
+with $n_A + n_B + n_C = F$. The fourth sign pattern $(-, -)$ is empirically absent. We impose the $B \leftrightarrow C$ mirror symmetry (swapping the two neurons maps group $B$ to group $C$), so $n_B = n_C$.
+
+\section{Archetype parametrization}
+
+\subsection*{Parameter count: 12 $\to$ 8 $\to$ 6 $\to$ 5}
+
+\textbf{Raw count (12).} Each group has one $W_{\mathrm{in}}$ column (a $2$-vector, 2 scalars) and one $W_{\mathrm{out}}$ row (a $2$-vector, 2 scalars). Three groups $\times$ 4 scalars $=$ \textbf{12}.
+
+\textbf{Apply $B \leftrightarrow C$ mirror (12 $\to$ 8).} Swapping the two neurons maps group $B$ to group $C$; we enforce this so that $C$'s archetypes are determined by $B$'s (entries swapped). This removes the 4 independent scalars of $C$, leaving \textbf{8}: $(a_{A1}, a_{A2}, a_{B1}, a_{B2}, o_{A1}, o_{A2}, o_{B1}, o_{B2})$.
+
+\textbf{Additional ansatz restriction on group A (8 $\to$ 6).} We further restrict $A$'s $W_{\mathrm{in}}$ column and $W_{\mathrm{out}}$ row to have equal entries across the two neurons, i.e.\ $a_{A1} = a_{A2} =: a_A$ and $o_{A1} = o_{A2} =: o_A$. This is \emph{not} a gauge choice but a modeling restriction: it asserts that the two neurons play the same role for group $A$ (both fire together, with equal weight). It is motivated empirically by the observation in the trained model that $W_{\mathrm{in}}[:, j \in A] \approx (0.46, 0.46)$ and $W_{\mathrm{out}}[j \in A, :] \approx (0.34, 0.34)$. Under this restriction we have \textbf{6}: $(a_A, a_{B1}, a_{B2}, o_A, o_{B1}, o_{B2})$.
+
+\textbf{Fix ReLU scale (6 $\to$ 5).} ReLU is positive-homogeneous, so $(W_{\mathrm{in}}, W_{\mathrm{out}}) \mapsto (c W_{\mathrm{in}}, c^{-1} W_{\mathrm{out}})$ with $c > 0$ leaves the model unchanged. Fixing $a_{B1} = 1$ (valid as long as the optimum has $a_{B1} > 0$; empirically $a_{B1} \approx 0.545$) removes the scale ambiguity, leaving \textbf{5 continuous parameters}.
+
+\subsection*{Final parametrization}
+
+\begin{align*}
+W_{\mathrm{in}}[:, j] &=
+\begin{cases}
+(a_A, a_A) & j \in A \\
+(a_{B1}, a_{B2}) & j \in B \\
+(a_{B2}, a_{B1}) & j \in C
+\end{cases}
+&
+W_{\mathrm{out}}[j, :] &=
+\begin{cases}
+(o_A, o_A) & j \in A \\
+(o_{B1}, o_{B2}) & j \in B \\
+(o_{B2}, o_{B1}) & j \in C.
+\end{cases}
+\end{align*}
+Note that the group membership of feature $j$ determines \emph{both} the $j$-th $W_{\mathrm{in}}$ column \emph{and} the $j$-th $W_{\mathrm{out}}$ row. The five continuous parameters are
+\begin{equation*}
+\theta = (a_A, \, a_{B2}, \, o_A, \, o_{B1}, \, o_{B2}) \in \mathbb{R}^5 \quad (\text{with } a_{B1} = 1),
+\end{equation*}
+and \textbf{1 discrete parameter} $n_A$ with $n_B = n_C = (F - n_A)/2$. For $F = 20$, feasibility of integer $n_B$ forces $n_A$ even; the empirically observed value is $n_A = 6$, giving $n_B = n_C = 7$.
+
+\section{Preactivations and outputs}
+
+Define the per-group signed sums
+\begin{equation*}
+S_A = \sum_{j \in A} x_j, \qquad S_B = \sum_{j \in B} x_j, \qquad S_C = \sum_{j \in C} x_j.
+\end{equation*}
+Then the neuron preactivations are
+\begin{align*}
+z_1 &= a_A S_A + a_{B1} S_B + a_{B2} S_C, \\
+z_2 &= a_A S_A + a_{B2} S_B + a_{B1} S_C,
+\end{align*}
+with $r_k = \mathrm{ReLU}(z_k)$, $k \in \{1, 2\}$. Outputs, by group of the target index $i$:
+\begin{align*}
+y_{i \in A} &= o_A (r_1 + r_2), \\
+y_{i \in B} &= o_{B1} r_1 + o_{B2} r_2, \\
+y_{i \in C} &= o_{B2} r_1 + o_{B1} r_2.
+\end{align*}
+
+\section{Loss}
+
+Under the archetype ansatz, every feature $j \in A$ has the same $W_{\mathrm{in}}$ column $(a_A, a_A)$ and the same $W_{\mathrm{out}}$ row $(o_A, o_A)$, and the inputs $x_j$ are i.i.d. Consequently the joint distribution over features is invariant under any permutation that swaps two indices within the same group: this is what we mean by \emph{exchangeability within a group}. A direct consequence is that
+\begin{equation*}
+\mathbb{E}\!\left[(y_j - t_j)^4\right] \text{ is the same for every } j \in A,
+\end{equation*}
+and similarly for groups $B$ and $C$. Summing the per-feature losses therefore collapses to
+\begin{equation}
+L_{\mathrm{sum}}(\theta; n_A) = n_A \, \mathbb{E}\!\left[(y_{j_A^*} - t_{j_A^*})^4\right]
++ 2 n_B \, \mathbb{E}\!\left[(y_{j_B^*} - t_{j_B^*})^4\right],
+\label{eq:loss}
+\end{equation}
+for \emph{any} fixed representative indices $j_A^* \in A$, $j_B^* \in B$ (we used the $B \leftrightarrow C$ mirror to merge the $B$ and $C$ contributions into the factor of $2 n_B$).
+
+\paragraph{Matching the trained objective.} The training code minimizes the per-entry mean $\tfrac{1}{B F}\sum_{b, j}(y_{b,j} - t_{b,j})^4$, so the reported training loss equals
+\begin{equation*}
+L_{\mathrm{mean}}(\theta; n_A) = \frac{1}{F}\, L_{\mathrm{sum}}(\theta; n_A).
+\end{equation*}
+The minimizer $\theta^*$ is identical, but numerical comparisons to the trained loss must use $L_{\mathrm{mean}}$.
+
+The parameter vector $\theta = (a_A, \, a_{B2}, \, o_A, \, o_{B1}, \, o_{B2}) \in \mathbb{R}^5$ is as defined in Section~2 (with $a_{B1} = 1$ fixed by the ReLU scale symmetry).
+
+\section{Effective 3$\times$3 block matrix in the both-on regime}
+
+When both neurons fire (i.e.\ $z_1 > 0$ and $z_2 > 0$), $y = W_{\mathrm{out}} W_{\mathrm{in}} x$ and the effective $F \times F$ matrix $M = W_{\mathrm{out}} W_{\mathrm{in}}$ is block-constant when rows and columns are ordered by group. In the other three ReLU regimes, one or both neurons are zeroed, so $M$ is rank $1$ (only $n_1$ or only $n_2$ on) or $0$ (both off); those regimes must be handled separately. The $3 \times 3$ block values are
+\begin{equation*}
+M =
+\begin{pmatrix}
+2 o_A a_A & o_A (a_{B1} + a_{B2}) & o_A (a_{B1} + a_{B2}) \\[2pt]
+a_A (o_{B1} + o_{B2}) & o_{B1} a_{B1} + o_{B2} a_{B2} & o_{B1} a_{B2} + o_{B2} a_{B1} \\[2pt]
+a_A (o_{B1} + o_{B2}) & o_{B1} a_{B2} + o_{B2} a_{B1} & o_{B1} a_{B1} + o_{B2} a_{B2}
+\end{pmatrix}.
+\end{equation*}
+Five independent entries, consistent with the five continuous parameters.
+
+\section{Evaluating the expectations}
+
+Inside a fixed ReLU regime (which of $z_1, z_2$ is positive), $y$ is linear in the $x_j$'s, so $(y - t)^4$ is a degree-4 polynomial in the $x_j$'s. The expectation reduces to moments of independent mask-times-uniform variables:
+\begin{equation*}
+\mathbb{E}[x_j^k] =
+\begin{cases}
+0 & k \text{ odd} \\
+\dfrac{p}{k+1} & k \text{ even}.
+\end{cases}
+\end{equation*}
+In particular $\mathbb{E}[x^2] = p/3$, $\mathbb{E}[x^4] = p/5$.
+
+The full expectation in Eq.~\eqref{eq:loss} splits by:
+\begin{enumerate}
+\item the ReLU regime ($z_1, z_2$ each $>0$ or $\leq 0$), and
+\item the status of $x_{j^*}$ (zero; active and positive; active and negative), which determines $t_{j^*}$ and modifies the preactivations through the $a_G x_{j^*}$ contribution.
+\end{enumerate}
+Each resulting term is a polynomial integral over the remaining $F-1$ i.i.d.\ features, evaluable in closed form.
+
+\section{Practical plan}
+
+\begin{description}
+\item[(B) Numeric.] Monte Carlo evaluation of $L(\theta; n_A)$ from Eq.~\eqref{eq:loss}, minimized over $\theta$ for each $n_A \in \{0, 2, 4, \ldots, F\}$ with \texttt{scipy.optimize}. Matches against the trained network's loss and weights. Fast sanity check for the whole ansatz.
+\item[(A) Symbolic.] Integrate term-by-term to get $L(\theta; n_A)$ as a polynomial in $\theta$ and in $p$. Solve $\nabla_\theta L = 0$ to get $\theta^*(p, n_A)$ and in particular $\alpha^* = M^*_{ii}$ as a function of $(p, n_A, F)$.
+\end{description}
+
+If (B) reproduces the trained loss and weights, the five-parameter family is the full story and (A) becomes the analytic polish.
+
+\end{document}

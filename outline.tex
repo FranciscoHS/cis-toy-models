@@ -1,0 +1,186 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{enumitem}
+\setlist[itemize]{itemsep=2pt, topsep=3pt}
+
+\title{Compressed Computation can be Computation in Superposition}
+\author{Francisco Ferreira da Silva}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Thesis}
+
+Computation in superposition (CiS) is a central hypothesis in mechanistic interpretability.
+Braun et al. introduce a compressed computation (CC) toy model that appeared to implement CiS.
+However, this was shown by Bhagat et al.\ to most likely not be a toy model for CiS.
+To the best of our knowledge, no suitable toy model of CiS has been introduced.
+
+We provide one.
+We consider a single-layer network with fewer ReLU neurons than features and train it under $L^4$ loss to learn the ReLU of its inputs.
+This model is identical to that of Bhagat et al., with the exception of the loss we choose.
+By penalizing outliers more harshly, this loss encourages CiS.
+We argue our model exhibits CiS, and we reverse engineer its learned mechanism to support this.
+We claim it implements \emph{combinatorial ReLU coding}: the $n$ bottleneck neurons partition input space into $2^n - 1$ nontrivial sign regions, each acting as a codeword; the trained model assigns features to codewords, and within each region an effective low-rank linear map reads the assigned features out. Two distinct bottlenecks govern performance (codeword identification and rank-$n$ readout); we characterise both and separate them experimentally.
+
+\section{Introduction}
+
+\paragraph{What the paper claims.}
+\begin{enumerate}
+\item After the Bhagat et al.\ critique, the field does not have a clean toy model of CiS.
+\item Training this architecture under $L^4$ loss yields a model that genuinely does CiS.
+\item The learned mechanism is combinatorial ReLU coding, which we reverse engineer in the smallest nontrivial case and predict quantitatively at larger sizes.
+\item The apparent-CiS vs.\ genuine-CiS distinction has a clean mechanistic handle: whether the model exploits the $2^n - 1$ sign regions of the ReLU bottleneck.
+\end{enumerate}
+
+\paragraph{Context.}
+\begin{itemize}
+\item Anthropic's Toy Models of Superposition established that superposed \emph{representations} are robust in small models.
+\item Whether \emph{computation} composes under superposition is the natural follow-up and is under active discussion (Braun et al.; Linsefors/Bushnaq on multi-layer noise propagation; Bhagat et al.'s critique).
+\item Our contribution sits directly in that conversation: a post-Bhagat replacement toy model, plus a mechanistic account.
+\end{itemize}
+
+\section{Why $L^4$ loss}
+
+Under $L^2$ loss, the naive solution (implement the first $n$ features exactly and ignore the remaining $F - n$) is what optimisation finds.
+The reason is that $L^2$ penalises average squared error, and with sparse inputs the average is dominated by the many features that are rarely active.
+Getting a few features exactly right and ignoring the rest scores well on this objective, and no gradient pressure exists to do better.
+
+$L^4$ loss changes this.
+By raising the error exponent, the loss disproportionately penalises the worst-served features.
+Features that are completely ignored now cost more than features that are served imperfectly.
+This creates gradient pressure to assign some representational capacity to every feature, which is the prerequisite for CiS.
+
+We support this picture with two pieces of evidence.
+First, loss-per-feature plots for $L^2$ vs.\ $L^4$: under $L^2$ the distribution is bimodal (matching naive), under $L^4$ it is approximately uniform.
+Second, an exponent sweep showing a crossover: as the exponent increases past $2$, the trained model's total loss crosses below the naive baseline and the per-feature loss distribution flattens.
+
+\paragraph{Controls we commit to running.}
+\begin{itemize}
+\item \emph{$L^4$-on-naive-class control.} Constrain the model to the naive solution class and fit under $L^4$.
+If $L^4$ alone, without CiS, already matches the trained model's loss, then the exponent change is not actually eliciting new behaviour.
+We predict it does not.
+\item \emph{Sparsity sweep.} Vary $p$ at fixed $F, n$.
+Identify where the trained solution departs from naive and where it collapses back.
+\item \emph{Task-structure sweep.} Repeat with target functions other than $\mathrm{ReLU}(x)$: e.g.\ $x^2$, $|x|$, thresholded ReLU.
+If the same mechanism appears, the toy model is not specific to the near-identity task.
+\end{itemize}
+
+\section{Evidence that the model does CiS}
+
+\begin{itemize}
+\item \textbf{Total loss strictly beats the naive baseline.}
+The architecture has no component capable of the Braun-style mixing that Bhagat et al.\ showed was responsible for the appearance of CiS in prior work, so the improvement is attributable to the bottleneck itself.
+\item \textbf{Loss is approximately uniform across features.}
+The naive solution has zero loss on the first $n$ features and unit loss on the rest; the CiS solution spreads error roughly evenly.
+\item \textbf{Frame geometry.} $W_{\mathrm{in}}$ columns form an approximate tight frame.
+Baselines: random $W_{\mathrm{in}}$ and $L^2$-trained $W_{\mathrm{in}}$.
+\item \textbf{Interference signature.} Per-sample loss grows with the number of simultaneously active features.
+\item \textbf{Scaling with $n$ at fixed expansion ratio.}
+One neuron cannot do CiS; two can; the gap to naive grows with $n$.
+\end{itemize}
+These establish the phenomenon.
+Section~4 explains it.
+
+\section{The mechanism: combinatorial ReLU coding}
+
+\paragraph{Codewords from ReLU sign regions.}
+The $n$ preactivation hyperplanes partition $\mathbb{R}^n$ into up to $2^n$ orthants.
+The all-negative orthant produces zero output; the remaining $2^n - 1$ regions each correspond to a distinct subset of active neurons.
+We call this subset the \emph{codeword} of the input.
+
+\paragraph{Feature-to-codeword assignment.}
+Each feature $j$ has an input direction $c_j = W_{\mathrm{in}}[:,j]$.
+When $x = v e_j$ with $v > 0$, the codeword fired is the sign pattern of $c_j$.
+In the trained model, the columns of $W_{\mathrm{in}}$ cluster onto the $2^n - 1$ codewords, partitioning the $F$ features into groups.
+
+\paragraph{Per-region effective map.}
+Within the region where codeword $s$ fires, the network acts as the linear map $x \mapsto W_{\mathrm{out}} \, \mathrm{diag}(s) \, W_{\mathrm{in}} x$.
+Different regions give different effective maps, and each region is optimised primarily for the features assigned to its codeword.
+
+\paragraph{Reverse engineering the $n=2$, $F=20$ case.}
+Symmetries (B$\leftrightarrow$C mirror, A neuron-swap, ReLU homogeneity) reduce the 12 free weights to a 5-continuous + 1-discrete parameter ansatz.
+Numerically the ansatz matches the trained model's $L^4$ loss within MC noise at 2M samples.
+This is a full mechanistic account: closed-form weights, closed-form loss, numerical match.
+
+\paragraph{The two bottlenecks.}
+\begin{itemize}
+\item \textbf{Identification} (which feature is active): capped by the number of codewords, $2^n - 1$.
+When $F > 2^n - 1$, features must share codewords and single-feature inputs are fundamentally unidentifiable.
+\item \textbf{Readout} (recovering the value given identification): $W_{\mathrm{out}}$ has rank $\leq n$, so the set of reachable outputs is at most $n$-dimensional.
+Perfect reconstruction of $F$ orthogonal targets requires $F \leq n$; otherwise there is a Frobenius lower bound of $F - n$ on the single-feature response matrix's distance from identity.
+\end{itemize}
+
+\paragraph{Separation experiment (MLP decoder).}
+Replacing $W_{\mathrm{out}}$ with a nonlinear decoder keeps identification bounded by codewords but lifts the rank constraint.
+This isolates the two bottlenecks: at $n$ large enough for unique codewords, single-feature loss should drop to near zero; at $n$ too small, it should plateau at a codeword-ambiguity floor.
+Reported side-by-side with the linear-decoder numbers.
+
+\section{Predictions and verification}
+
+The mechanism supplies falsifiable quantitative predictions.
+For each we state the metric and what would constitute failure.
+
+\begin{enumerate}
+\item \textbf{Feature partition.} For every $n$, features cluster onto at most $2^n - 1$ codewords.
+Metric: fraction of features whose codeword is shared with others, and expected partition sizes.
+Failure mode: features using more than $2^n - 1$ distinct codewords, or failing to concentrate onto any discrete set.
+\item \textbf{Phase transition at $F = 2^n - 1$.}
+Fixing $F$ and increasing $n$, single-feature $L^4$ loss drops sharply at the $n$ where codewords first become unique.
+Example: $F = 20$, transition at $n = 5$.
+\item \textbf{Rank-$n$ readout bound.}
+For $F > n$, the distance of the scaled single-feature response matrix from $I_F$ approaches the information-theoretic floor $F - n$.
+Stated across $n = 3, 4, 5$, not just $n = 5$.
+\item \textbf{Structured assignment.}
+The trained codeword assignment is structured, not a random injection.
+Control: shuffle assigned codewords, retrain the decoder only, compare loss.
+\item \textbf{Sparsity regime.}
+Codeword structure persists over an explicit range of $p$; we identify the breakdown boundary.
+\item \textbf{Seed robustness.}
+The partition structure, not the exact per-feature assignment, emerges reliably across seeds.
+If the ansatz has multiple basins (the discrete parameter suggests it might), we report frequencies.
+\end{enumerate}
+
+\section{Planned experiments (working back from claims)}
+
+This section lists what we will run, organised by which claim each experiment supports.
+Not all are in the current run.
+
+\begin{itemize}
+\item \textbf{Against $L^4$-as-magic:} $L^4$-on-naive-class control; exponent sweep over $\{1.5, 2, 3, 4, 6, 8\}$.
+\item \textbf{Against ``ReLU(x) is special":} alternative targets ($x^2$, $|x|$, thresholded ReLU, simple 2-feature products).
+\item \textbf{Against ``only works at our $p$":} sparsity sweep $p \in [0.005, 0.3]$.
+\item \textbf{For generality of the codeword story:} larger $F, n$ (e.g.\ $F = 100$, $n \in \{2, \ldots, 10\}$); ansatz extension to $n = 3$ (7 groups).
+\item \textbf{For separation of bottlenecks:} MLP decoder at multiple $n$; rank-constrained decoder variants.
+\item \textbf{For robustness of the story:} seed sweep with basin frequencies; initialisation sweep.
+\item \textbf{Negative controls:} random-codeword-assignment ablation; $L^2$-trained baseline on every plot.
+\end{itemize}
+
+\section{Discussion}
+
+\paragraph{Relation to Bhagat et al.}
+Their critique showed that prior apparent-CiS behaviour was attributable to a component of the architecture that our model does not contain.
+The mechanism we identify here is a property of the ReLU bottleneck's sign-region geometry, which was present in their analysis but not doing the work.
+
+\paragraph{Relation to Linsefors / Bushnaq.}
+Their analysis of multi-layer noise propagation is complementary.
+The codeword mechanism solves identification at a single layer.
+How identification errors compose across layers is the natural next question and is outside the scope of this paper.
+
+\paragraph{Relation to Anthropic's Toy Models of Superposition.}
+Those papers establish that \emph{representations} superpose.
+We give a minimal model in which \emph{computation} does, and show what limits it.
+
+\paragraph{Limitations.}
+Single layer.
+Near-identity task (ReLU of input), though the task-structure sweep partially addresses this.
+Small scale.
+Whether combinatorial ReLU coding is observable in natural networks is open.
+
+\paragraph{What we are not claiming.}
+We are not claiming that combinatorial ReLU coding is the unique CiS mechanism, nor that it scales to realistic networks unchanged.
+The claim is that it is a clean, fully-characterised mechanism in the smallest setting where genuine CiS occurs, and that it answers the question Bhagat et al.\ left open.
+
+\end{document}

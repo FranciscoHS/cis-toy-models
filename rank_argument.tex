@@ -1,0 +1,88 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{bm}
+
+\title{The rank-$n$ limit on single-feature recovery}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Setup}
+
+Let $F$ be the number of features, $n$ the number of neurons, and consider the model
+\begin{equation*}
+y = W_{\mathrm{out}} \, \mathrm{ReLU}(W_{\mathrm{in}} x), \qquad
+W_{\mathrm{in}} \in \mathbb{R}^{n \times F}, \quad W_{\mathrm{out}} \in \mathbb{R}^{F \times n},
+\end{equation*}
+with input distribution $x_j = m_j v_j$, $m_j \sim \mathrm{Bernoulli}(p)$, $v_j \sim \mathrm{Uniform}(-1, 1)$, target $t_j = \mathrm{ReLU}(x_j)$.
+
+Call $c_j := W_{\mathrm{in}}[:, j] \in \mathbb{R}^n$ the \emph{codeword} of feature $j$: it describes how feature $j$ is routed to the $n$ neurons.
+
+\section{The question}
+
+Suppose $F > n$ but $F \leq 2^n - 1$. There are more codewords available than features, so every feature can be assigned a unique sign pattern. This is a necessary condition for single-active-feature \emph{identification}: given only which neurons fire, we can tell which feature was active.
+
+\textbf{Does unique identification imply perfect single-feature recovery?}
+
+If yes, then under sufficient sparsity ($p$ small enough that $k \geq 2$ active features are rare), the model could achieve near-zero loss. The numerical evidence contradicts this: at $n = 5, F = 20$, we still observe a diagonal of the effective response matrix around $0.52$ and significant off-diagonal cross-talk, even though all 20 features get (nearly) unique codewords. Why?
+
+\section{The rank-$n$ bound}
+
+Consider the single-feature-active regime with $x = v e_j$, $v > 0$. By positive-homogeneity of ReLU,
+\begin{equation*}
+y = W_{\mathrm{out}} \, \mathrm{ReLU}(c_j v) = W_{\mathrm{out}} \, \mathrm{pos}(c_j) \cdot v,
+\end{equation*}
+where $\mathrm{pos}(c_j) \in \mathbb{R}^n$ zeros the negative entries of $c_j$. Perfect recovery on feature $j$ means $y = e_j v$, i.e.
+\begin{equation}
+W_{\mathrm{out}} \, \mathrm{pos}(c_j) = e_j. \label{eq:per-j}
+\end{equation}
+We want \eqref{eq:per-j} to hold for \emph{every} $j \in \{1, \ldots, F\}$.
+
+\paragraph{Rank obstruction.}
+$W_{\mathrm{out}} \in \mathbb{R}^{F \times n}$ has rank at most $n$, so its image $\mathrm{Im}(W_{\mathrm{out}}) \subseteq \mathbb{R}^F$ is a subspace of dimension at most $n$. Every possible output $y$, regardless of the codeword $c_j$ or the activation pattern, lies in this subspace.
+
+The targets $e_1, \ldots, e_F$ are $F$ linearly independent vectors in $\mathbb{R}^F$; they span all of $\mathbb{R}^F$. They cannot all lie in an $n$-dimensional subspace when $F > n$. Therefore \eqref{eq:per-j} cannot hold simultaneously for all $j$. \qed
+
+\paragraph{Why the ReLU doesn't rescue this.}
+One might hope that because different features activate different subsets of neurons, each feature effectively sees a different decoder. But the columns of $W_{\mathrm{out}}$ are shared across features: they are $n$ fixed vectors $W_1, \ldots, W_n \in \mathbb{R}^F$. Every single-feature response is a non-negative linear combination of subsets of these $n$ vectors, and so lies in their span. The span still has dimension $\leq n$. The ReLU gates which subsets get activated, but it does not add new output directions.
+
+\paragraph{Quantitative bound.}
+Under squared-error, the best rank-$n$ approximation of the identity $I_F$ by a matrix of the form $W_{\mathrm{out}} A$ (for some $A \in \mathbb{R}^{n \times F}$) is any rank-$n$ orthogonal projection $P$ of $\mathbb{R}^F$, achieving
+\begin{equation}
+\|I_F - P\|_F^2 = F - n.
+\end{equation}
+This is a hard lower bound on the summed squared error of single-feature reconstruction, achievable only by rank-$n$ orthogonal projections.
+
+\section{Numerical check ($F = 20, n = 5$)}
+
+Define the single-feature response matrix $R \in \mathbb{R}^{F \times F}$ by
+\begin{equation*}
+R_{:, j} := W_{\mathrm{out}} \, \mathrm{ReLU}(c_j),
+\end{equation*}
+so $R_{:, j}$ is the model's output when $x = e_j$ (with $v = +1$). Perfect recovery means $R = I_F$.
+
+For the trained 20f/5n L$^4$ model:
+\begin{itemize}
+\item Raw: $\mathrm{diag}(R)$ has mean $0.511$, min $0.470$, max $0.528$; off-diagonals have mean magnitude $0.177$; $\|R - I_{20}\|_F^2 = 20.53$.
+\item After optimal uniform rescaling $s = \mathrm{tr}(R) / \|R\|_F^2 = 0.487$: $\|sR - I_{20}\|_F^2 = 15.02$.
+\end{itemize}
+Lower bound: $F - n = 15$.
+
+The trained model, after the optimal scale adjustment, saturates the rank-$n$ bound to within 0.02. In other words, $W_{\mathrm{out}}$ essentially implements the best rank-5 projection of $\mathbb{R}^{20}$ that can be built from the ReLU'd codewords; no choice of weights could do materially better.
+
+The reason the raw trained model has diagonal $0.51$ rather than the $s = 0.487$-scaled diagonal $0.25$ is that training minimizes $L^4$ loss, not squared error. $L^4$ rebalances the attenuation/off-diagonal tradeoff in favor of a larger diagonal (and correspondingly larger off-diagonals). The rank-$n$ bound itself is independent of the loss function: it constrains which projections are attainable, not their scaling.
+
+\section{Corrected framing}
+
+\begin{description}
+\item[$F \leq n$ (dense regime).] Perfect recovery possible for all inputs, including dense ones. $W_{\mathrm{in}}$ and $W_{\mathrm{out}}$ can be chosen to invert each other.
+\item[$n < F \leq 2^n - 1$.] Unique codewords available, so single active features are identifiable. But the decoder is rank-$n$ and cannot map $F$ codewords to $F$ orthogonal outputs: single-feature loss bounded below by the rank-$n$ identity-approximation limit. Observed at $n = 5, F = 20$.
+\item[$F > 2^n - 1$.] Codewords must be shared across features; \emph{within-codeword ambiguity} adds on top of the rank constraint. The observed $\alpha \approx 0.33$ at $n = 2, F = 20$ is driven by this regime.
+\end{description}
+
+The codeword count $2^n - 1$ governs \emph{identification}. The dimension $n$ governs \emph{decoding}. Identification is necessary but not sufficient; perfect reconstruction under sparsity still requires $F \leq n$.
+
+\end{document}
