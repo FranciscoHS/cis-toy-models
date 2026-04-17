@@ -86,7 +86,7 @@ def load_linear_decomp(n):
 
 if __name__ == "__main__":
     print(f"Device: {DEVICE}  F={F}  p={P}  steps={STEPS}")
-    for n in [2, 5]:
+    for n in [2, 3, 4, 5]:
         print(f"\n=== n={n} (MLP decoder) ===")
         mlp_path = CACHE / f"mlp_decoder_20f_{n}n_L4.pt"
         if mlp_path.exists():
