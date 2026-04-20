@@ -1,0 +1,22 @@
+{
+  "weights": "weights/small_20f_5n_L4.pt",
+  "variant": "plain",
+  "n_features": 20,
+  "d_mlp": 5,
+  "C": 30,
+  "steps": 30000,
+  "batch_size": 2048,
+  "lr": 0.002,
+  "p": 0.05,
+  "n_mask_samples": 1,
+  "n_ci_mlp_neurons": 16,
+  "faithfulness_coeff": 1.0,
+  "stochastic_recon_coeff": 1.0,
+  "stochastic_recon_layerwise_coeff": 1.0,
+  "importance_minimality_coeff": 1e-05,
+  "pnorm": 2.0,
+  "data_gen": "at_least_zero_active",
+  "seed": 0,
+  "tag": "plain_20f_5n",
+  "d_embed": 20
+}

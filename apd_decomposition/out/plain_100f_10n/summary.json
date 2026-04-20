@@ -1,0 +1,20 @@
+{
+  "name": "plain_100f_10n",
+  "F": 100,
+  "C": 130,
+  "dead": 121,
+  "mono": 2,
+  "duo": 2,
+  "poly": 5,
+  "mono_features_covered": 2,
+  "in_mono": 5,
+  "in_features_read": 5,
+  "out_mono": 0,
+  "out_features_written": 0,
+  "n_alive_both": 9,
+  "n_in_out_aligned": 5,
+  "mse_all_components": 7.434340659528971e-06,
+  "mse_scrubbed_mean": 0.00477354321628809,
+  "mse_antiscrubbed_mean": 0.0018775283824652433,
+  "mse_ratio_anti_over_scrub": 0.39331966638565063
+}

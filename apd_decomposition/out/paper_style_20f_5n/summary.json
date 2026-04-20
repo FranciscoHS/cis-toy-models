@@ -1,0 +1,20 @@
+{
+  "name": "paper_style_20f_5n",
+  "F": 20,
+  "C": 30,
+  "dead": 28,
+  "mono": 2,
+  "duo": 0,
+  "poly": 0,
+  "mono_features_covered": 2,
+  "in_mono": 7,
+  "in_features_read": 4,
+  "out_mono": 9,
+  "out_features_written": 4,
+  "n_alive_both": 2,
+  "n_in_out_aligned": 2,
+  "mse_all_components": 0.00035494519397616386,
+  "mse_scrubbed_mean": 0.0007707368349656463,
+  "mse_antiscrubbed_mean": 0.006201842799782753,
+  "mse_ratio_anti_over_scrub": 8.04664134979248
+}

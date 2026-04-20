@@ -1,0 +1,30 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{bushnaqspd}
+\citation{bushnaqspd}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Setup}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}APD in brief}{1}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Target models}{2}{subsection.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}Adapting the APD code to our architecture}{2}{subsection.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4}APD training configuration}{2}{subsection.1.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Results}{2}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Pipeline sanity: paper-style target}{2}{subsection.2.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textbf  {APD on paper-style target.} Left: per-feature read strength of each input-side component (rows are components sorted by dominant feature). Middle: per-feature write strength of each output-side component. Right: component category counts, in-side vs out-side. Some components have a clear dominant feature on both sides, matching the paper's qualitative finding.}}{3}{figure.1}\protected@file@percent }
+\newlabel{fig:paperstyle}{{1}{3}{\textbf {APD on paper-style target.} Left: per-feature read strength of each input-side component (rows are components sorted by dominant feature). Middle: per-feature write strength of each output-side component. Right: component category counts, in-side vs out-side. Some components have a clear dominant feature on both sides, matching the paper's qualitative finding}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Main finding: APD on $L^4$ CiS models gives polysemantic components with decoupled in/out halves}{3}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Why? Codeword sharing means no per-feature circuit}{3}{subsection.2.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces APD decomposition summary. ``alive both'' = components alive on both input and output sides. ``aligned'' = of those, how many have the same dominant feature on both sides. ``anti/scrub'' is the ratio of anti-scrubbed MSE to scrubbed MSE; $>1$ means the decomposition is behaviourally meaningful.}}{4}{table.1}\protected@file@percent }
+\newlabel{tab:summary}{{1}{4}{APD decomposition summary. ``alive both'' = components alive on both input and output sides. ``aligned'' = of those, how many have the same dominant feature on both sides. ``anti/scrub'' is the ratio of anti-scrubbed MSE to scrubbed MSE; $>1$ means the decomposition is behaviourally meaningful}{table.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {APD on \texttt  {plain\_20f\_5n}.} Both IN and OUT sides have many alive components, each covering multiple features (dense horizontal bands). The alive components on each side are at different indices: no component has a coherent ``read feature $j$ then write feature $j$'' structure. Right panel: no monosemantic or duo components.}}{4}{figure.2}\protected@file@percent }
+\newlabel{fig:plain20f5n}{{2}{4}{\textbf {APD on \texttt {plain\_20f\_5n}.} Both IN and OUT sides have many alive components, each covering multiple features (dense horizontal bands). The alive components on each side are at different indices: no component has a coherent ``read feature $j$ then write feature $j$'' structure. Right panel: no monosemantic or duo components}{figure.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Plain vs embedded}{4}{subsection.2.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces \textbf  {APD on \texttt  {plain\_20f\_2n}.} More extreme version of the same pattern. With only 3 codewords for 20 features, the OUT-side alive components each write to (nearly) all 20 features simultaneously -- a direct signature of codeword sharing.}}{5}{figure.3}\protected@file@percent }
+\newlabel{fig:plain20f2n}{{3}{5}{\textbf {APD on \texttt {plain\_20f\_2n}.} More extreme version of the same pattern. With only 3 codewords for 20 features, the OUT-side alive components each write to (nearly) all 20 features simultaneously -- a direct signature of codeword sharing}{figure.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Scaling: \texttt  {plain\_100f\_10n}}{5}{subsection.2.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6}Anti/scrub ratio: a summary diagnostic}{5}{subsection.2.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Sanity-checks and caveats}{5}{section.3}\protected@file@percent }
+\bibcite{bushnaqspd}{1}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Conclusion}{6}{section.4}\protected@file@percent }
+\gdef \@abspage@last{6}

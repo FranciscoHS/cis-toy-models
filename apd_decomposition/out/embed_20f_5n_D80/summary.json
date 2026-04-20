@@ -1,0 +1,20 @@
+{
+  "name": "embed_20f_5n_D80",
+  "F": 20,
+  "C": 30,
+  "dead": 25,
+  "mono": 2,
+  "duo": 1,
+  "poly": 2,
+  "mono_features_covered": 2,
+  "in_mono": 1,
+  "in_features_read": 1,
+  "out_mono": 0,
+  "out_features_written": 0,
+  "n_alive_both": 5,
+  "n_in_out_aligned": 2,
+  "mse_all_components": 6.758786184946075e-05,
+  "mse_scrubbed_mean": 0.006252270191907883,
+  "mse_antiscrubbed_mean": 0.004664966370910406,
+  "mse_ratio_anti_over_scrub": 0.7461236119270325
+}
